@@ -20,6 +20,10 @@ class StrengthResult:
 
 class PasswordStrengthChecker:
     def __init__(self, min_length: int = 8, max_length: int = 128):
+        if min_length < 1:
+            raise ValueError('min_length must be at least 1')
+        if max_length < min_length:
+            raise ValueError('max_length must be greater than or equal to min_length')
         self.min_length = min_length
         self.max_length = max_length
         self.common_patterns = [
@@ -28,13 +32,19 @@ class PasswordStrengthChecker:
         ]
 
     def check_strength(self, password: str) -> StrengthResult:
+        if not isinstance(password, str):
+            raise TypeError(f'password must be a str, got {type(password).__name__}')
+
         feedback = []
         passed_checks = []
         failed_checks = []
         score = 0
 
         # Check 1: Length
-        if len(password) < self.min_length:
+        if len(password) > self.max_length:
+            failed_checks.append('Too long')
+            feedback.append(f'Password must be at most {self.max_length} characters long')
+        elif len(password) < self.min_length:
             failed_checks.append('Too short')
             feedback.append(f'Password must be at least {self.min_length} characters long')
         else:
@@ -113,9 +123,10 @@ class PasswordStrengthChecker:
 
     def _has_sequential_chars(self, password: str) -> bool:
         for i in range(len(password) - 2):
-            if (ord(password[i+1]) == ord(password[i]) + 1 and
-                ord(password[i+2]) == ord(password[i+1]) + 1):
-                return True
+            for step in (1, -1):
+                if (ord(password[i+1]) == ord(password[i]) + step and
+                    ord(password[i+2]) == ord(password[i+1]) + step):
+                    return True
         return False
 
     def _get_strength_level(self, score: int) -> StrengthLevel:
