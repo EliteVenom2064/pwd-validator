@@ -14,7 +14,7 @@ A Python password strength validator with detailed feedback and scoring.
 
 The checker evaluates passwords based on:
 
-- **Length** (8-128 characters recommended)
+- **Length** (8-128 characters; passwords over `max_length` fail the check)
 - **Character Variety** - Lowercase, uppercase, numbers, special characters
 - **Common Patterns** - Blocks weak passwords like "password123"
 - **Sequential Characters** - Detects patterns like "abc" or "123"
@@ -72,10 +72,10 @@ print(f"Suggestions: {result.feedback}")
 
 **Output:**
 ```
-Password Strength: good (65/100)
-Passed checks: ['Meets minimum length', 'Contains lowercase letters', 'Contains uppercase letters', 'Contains numbers', 'Contains special characters']
+Password Strength: fair (45/100)
+Passed checks: ['Meets minimum length', 'Within maximum length', 'Contains lowercase letters', 'Contains uppercase letters', 'Contains numbers', 'Contains special characters', 'No common weak patterns']
 Failed checks: []
-Suggestions: ['Good password, but could be stronger']
+Suggestions: ['Avoid sequential characters (abc, 123)']
 ```
 
 ### Interactive Checker
@@ -96,11 +96,13 @@ checker = PasswordStrengthChecker(min_length=8, max_length=128)
 
 **Methods:**
 
-- `check_strength(password: str) -> StrengthResult` - Validates and scores a password
+- `check_strength(password: str) -> StrengthResult` - Validates and scores a password. Raises `TypeError` if `password` is not a `str`.
 
 **Parameters:**
 - `min_length` (int, default=8) - Minimum password length
 - `max_length` (int, default=128) - Maximum password length
+
+The constructor raises `TypeError` for non-integer bounds and `ValueError` when `min_length < 1` or `max_length < min_length`.
 
 ### `StrengthResult`
 

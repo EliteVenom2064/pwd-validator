@@ -20,6 +20,17 @@ class StrengthResult:
 
 class PasswordStrengthChecker:
     def __init__(self, min_length: int = 8, max_length: int = 128):
+        if isinstance(min_length, bool) or not isinstance(min_length, int):
+            raise TypeError(f'min_length must be an int, got {type(min_length).__name__}')
+        if isinstance(max_length, bool) or not isinstance(max_length, int):
+            raise TypeError(f'max_length must be an int, got {type(max_length).__name__}')
+        if min_length < 1:
+            raise ValueError(f'min_length must be at least 1, got {min_length}')
+        if max_length < min_length:
+            raise ValueError(
+                f'max_length ({max_length}) must be greater than or equal to min_length ({min_length})'
+            )
+
         self.min_length = min_length
         self.max_length = max_length
         self.common_patterns = [
@@ -28,6 +39,9 @@ class PasswordStrengthChecker:
         ]
 
     def check_strength(self, password: str) -> StrengthResult:
+        if not isinstance(password, str):
+            raise TypeError(f'password must be a str, got {type(password).__name__}')
+
         feedback = []
         passed_checks = []
         failed_checks = []
@@ -46,6 +60,14 @@ class PasswordStrengthChecker:
             if len(password) >= 16:
                 score += 10
                 passed_checks.append('Excellent length')
+
+        # Check 1b: Maximum length
+        if len(password) > self.max_length:
+            failed_checks.append('Too long')
+            feedback.append(f'Password must be at most {self.max_length} characters long')
+            score = max(0, score - 30)
+        else:
+            passed_checks.append('Within maximum length')
 
         # Check 2: Lowercase letters
         if re.search(r'[a-z]', password):
