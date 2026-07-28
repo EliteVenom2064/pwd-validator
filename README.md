@@ -14,10 +14,14 @@ A Python password strength validator with detailed feedback and scoring.
 
 The checker evaluates passwords based on:
 
-- **Length** (8-128 characters recommended)
-- **Character Variety** - Lowercase, uppercase, numbers, special characters
+- **Length** (8-128 characters by default; outside this range a password is always rated weak)
+- **Character Variety** - Lowercase, uppercase, numbers, special characters (anything non-alphanumeric)
 - **Common Patterns** - Blocks weak passwords like "password123"
-- **Sequential Characters** - Detects patterns like "abc" or "123"
+- **Sequential Characters** - Detects ascending and descending runs like "abc", "123", or "zyx"
+- **Repeated Characters** - Detects runs like "aaa"
+
+Only ASCII characters count toward the character-variety checks, so non-ASCII digits or letters
+(`٣`, `é`) do not satisfy the number/letter requirements.
 
 ### Strength Levels
 
@@ -36,7 +40,9 @@ The checker evaluates passwords based on:
 git clone https://github.com/EliteVenom2064/pwd-validator.git
 cd pwd-validator
 
-# No external dependencies required (uses only Python stdlib)
+# Requires Python 3.8+. No runtime dependencies (uses only the stdlib).
+# Tests need pytest:
+pip install pytest
 ```
 
 ## Quick Start
@@ -47,9 +53,9 @@ from password_strength_checker import PasswordStrengthChecker
 checker = PasswordStrengthChecker()
 result = checker.check_strength("MyP@ssw0rd2024!")
 
-print(f"Strength: {result.strength.value}")
-print(f"Score: {result.score}/100")
-print(f"Feedback: {result.feedback}")
+print(f"Strength: {result.strength.value}")  # very-strong
+print(f"Score: {result.score}/100")          # 90/100
+print(f"Feedback: {result.feedback}")        # []
 ```
 
 ## Usage Examples
@@ -72,10 +78,10 @@ print(f"Suggestions: {result.feedback}")
 
 **Output:**
 ```
-Password Strength: good (65/100)
-Passed checks: ['Meets minimum length', 'Contains lowercase letters', 'Contains uppercase letters', 'Contains numbers', 'Contains special characters']
-Failed checks: []
-Suggestions: ['Good password, but could be stronger']
+Password Strength: good (70/100)
+Passed checks: ['Meets minimum length', 'Contains lowercase letters', 'Contains uppercase letters', 'Contains numbers', 'Contains special characters', 'No common weak patterns', 'No repeated characters']
+Failed checks: ['Contains sequential characters']
+Suggestions: ['Avoid sequential characters (abc, 123, zyx)']
 ```
 
 ### Interactive Checker
@@ -96,11 +102,15 @@ checker = PasswordStrengthChecker(min_length=8, max_length=128)
 
 **Methods:**
 
-- `check_strength(password: str) -> StrengthResult` - Validates and scores a password
+- `check_strength(password: str) -> StrengthResult` - Validates and scores a password. Raises
+  `TypeError` if `password` is not a `str`.
 
 **Parameters:**
 - `min_length` (int, default=8) - Minimum password length
 - `max_length` (int, default=128) - Maximum password length
+
+Both bounds are enforced; a password shorter or longer than the configured range is always rated
+`WEAK`. `ValueError` is raised for `min_length < 1` or `max_length < min_length`.
 
 ### `StrengthResult`
 
@@ -111,6 +121,22 @@ Returned object with the following attributes:
 - `feedback` (List[str]) - Suggestions for improvement
 - `passed_checks` (List[str]) - List of passed validation checks
 - `failed_checks` (List[str]) - List of failed validation checks
+- `verdict` (str) - Overall remark for strong/very-strong passwords, empty otherwise
+
+### Scoring
+
+| Criterion | Points |
+|---|---|
+| Meets minimum length | +15 |
+| Length ≥ 12 | +10 |
+| Length ≥ 16 | +10 |
+| Lowercase / uppercase / digits | +15 each |
+| Special character | +20 |
+| Common pattern | −20 |
+| Sequential characters | −10 |
+| Repeated characters | −10 |
+
+The score is clamped to 0-100, so every strength level — including `very-strong` — is reachable.
 
 ## Testing
 
