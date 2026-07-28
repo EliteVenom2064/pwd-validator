@@ -40,6 +40,17 @@ SUMMARY_FEEDBACK = {
 
 class PasswordStrengthChecker:
     def __init__(self, min_length: int = 8, max_length: int = 128):
+        if isinstance(min_length, bool) or not isinstance(min_length, int):
+            raise TypeError(f'min_length must be an int, got {type(min_length).__name__}')
+        if isinstance(max_length, bool) or not isinstance(max_length, int):
+            raise TypeError(f'max_length must be an int, got {type(max_length).__name__}')
+        if min_length < 1:
+            raise ValueError(f'min_length must be at least 1, got {min_length}')
+        if max_length < min_length:
+            raise ValueError(
+                f'max_length ({max_length}) must be greater than or equal to min_length ({min_length})'
+            )
+
         self.min_length = min_length
         self.max_length = max_length
         self.common_patterns = [
@@ -48,6 +59,9 @@ class PasswordStrengthChecker:
         ]
 
     def check_strength(self, password: str) -> StrengthResult:
+        if not isinstance(password, str):
+            raise TypeError(f'password must be a str, got {type(password).__name__}')
+
         checks = CheckAccumulator()
 
         self._check_length(password, checks)
@@ -88,12 +102,20 @@ class PasswordStrengthChecker:
                 'Too short',
                 f'Password must be at least {self.min_length} characters long',
             )
-            return
+        else:
+            checks.record_pass('Meets minimum length', 10)
+            for minimum, points, label in LENGTH_BONUSES:
+                if len(password) >= minimum:
+                    checks.record_pass(label, points)
 
-        checks.record_pass('Meets minimum length', 10)
-        for minimum, points, label in LENGTH_BONUSES:
-            if len(password) >= minimum:
-                checks.record_pass(label, points)
+        if len(password) > self.max_length:
+            checks.record_fail(
+                'Too long',
+                f'Password must be at most {self.max_length} characters long',
+                penalty=30,
+            )
+        else:
+            checks.record_pass('Within maximum length')
 
     def _has_common_patterns(self, password: str) -> bool:
         return has_any_substring(password, self.common_patterns)
